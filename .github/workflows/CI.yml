@@ -40,3 +40,14 @@ jobs:
          - name: Install pyoqp
            run: |
             cd pyoqp && pip install .
+         - name: Run tests
+           run: |
+            export OPENQP_ROOT=$GITHUB_WORKSPACE
+            export LD_LIBRARY_PATH=$OPENQP_ROOT/lib:$LD_LIBRARY_PATH
+            openqp --run_tests other
+         - name: Upload test reports
+           if: always()
+           uses: actions/upload-artifact@v4
+           with:
+            name: test-reports-${{ matrix.os }}-gcc${{ matrix.version }}-MPI${{ matrix.MPI }}
+            path: openqp_test_tmp*/test_report.txt
