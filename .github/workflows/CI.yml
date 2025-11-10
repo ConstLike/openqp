@@ -10,7 +10,6 @@ jobs:
          matrix:
             os: [ubuntu-24.04, ubuntu-24.04-arm]
             version: [14]
-            MPI: [ON, OFF]
       steps:
          - name: Checkout code
            uses: actions/checkout@v4
@@ -22,10 +21,6 @@ jobs:
            if: ${{ matrix.os == 'ubuntu-latest' || contains(matrix.os, 'ubuntu-24.04') }}
            run: |
             sudo apt-get install libopenblas-dev
-         - name: Install MPI (ubuntu)
-           if: ${{ contains(matrix.os, 'ubuntu') }}
-           run: |
-            sudo apt-get install libopenmpi-dev
          - name: Install CMake
            run: pip install ninja cmake
          - name: Install pyoqp dependencies
@@ -33,7 +28,7 @@ jobs:
             cd pyoqp && pip install -r requirements.txt
          - name: Configure build
            run: |
-            cmake -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=Debug -DUSE_LIBINT=OFF -DCMAKE_C_COMPILER=gcc-${{ matrix.version }} -DCMAKE_CXX_COMPILER=g++-${{ matrix.version }} -DCMAKE_Fortran_COMPILER=gfortran-${{ matrix.version }} -DCMAKE_INSTALL_PREFIX=. -DENABLE_OPENMP=ON -DLINALG_LIB_INT64=OFF -DENABLE_MPI=${{ matrix.MPI }}
+            cmake -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=Debug -DUSE_LIBINT=OFF -DCMAKE_C_COMPILER=gcc-${{ matrix.version }} -DCMAKE_CXX_COMPILER=g++-${{ matrix.version }} -DCMAKE_Fortran_COMPILER=gfortran-${{ matrix.version }} -DCMAKE_INSTALL_PREFIX=. -DENABLE_OPENMP=ON -DLINALG_LIB_INT64=OFF -DENABLE_MPI=OFF
          - name: Compile & Install
            run: |
             ninja -C ${{ env.BUILD_DIR }} install
@@ -41,14 +36,13 @@ jobs:
            run: |
             cd pyoqp && pip install .
          - name: Run tests
-           if: ${{ matrix.MPI == 'OFF' }}
            run: |
             export OPENQP_ROOT=$GITHUB_WORKSPACE
             export LD_LIBRARY_PATH=$OPENQP_ROOT/lib:$LD_LIBRARY_PATH
             openqp --run_tests other
          - name: Upload test reports
-           if: ${{ matrix.MPI == 'OFF' && always() }}
+           if: always()
            uses: actions/upload-artifact@v4
            with:
-            name: test-reports-${{ matrix.os }}-gcc${{ matrix.version }}-MPI${{ matrix.MPI }}
+            name: test-reports-${{ matrix.os }}-gcc${{ matrix.version }}
             path: openqp_test_tmp*/test_report.txt
